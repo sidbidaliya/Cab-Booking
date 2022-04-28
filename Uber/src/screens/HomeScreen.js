@@ -1,13 +1,54 @@
-import React from "react";
-import {Dimensions, StyleSheet, Text, View, ScrollView, Image, FlatList} from "react-native";
+import React, {useEffect, useRef, useState} from "react";
+import {Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, View} from "react-native";
 import {colors, parameters} from "../global/styles";
 import {Icon} from "react-native-elements";
 import {StatusBar} from "expo-status-bar";
-import {filterData} from "../global/data";
+import {filterData, carsAround} from "../global/data";
+import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
+import {mapStyle} from "../global/mapStyle";
+import * as Location from 'expo-location';
 
 const SCREEN_WIDTH = Dimensions.get('window').width
 
 const HomeScreen = () => {
+
+    const [latlng, setLatLng] = useState({})
+
+    const checkPermission = async () => {
+        const hasPermission = await Location.requestForegroundPermissionsAsync();
+        if (hasPermission.status === 'granted') {
+            return await askPermission()
+        }
+        return true
+    };
+
+    const askPermission = async () => {
+        const permission = await Location.requestForegroundPermissionsAsync()
+        return permission.status === 'granted'
+    }
+
+    const getLocation = async () => {
+        try {
+            const {granted} = await Location.requestForegroundPermissionsAsync();
+            if (!granted) return;
+            const {
+                coords: {latitude, longitude},
+            } = await Location.getCurrentPositionAsync();
+            setLatLng({latitude: latitude, longitude: longitude})
+        } catch (err) {
+
+        }
+    }
+
+    const _map = useRef(1)
+
+    useEffect(() => {
+        checkPermission();
+        getLocation()
+        console.log(latlng);
+        []
+    })
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -109,6 +150,25 @@ const HomeScreen = () => {
                 </View>
 
                 <Text style={styles.text4}>Around you</Text>
+
+                <View style={{alignItems: "center", justifyContent: "center"}}>
+                    <MapView ref={_map}
+                             provider={PROVIDER_GOOGLE}
+                             style={styles.map}
+                             customMapStyle={mapStyle}
+                             showsUserLocation={true}
+                             followsUserLocation={true}
+                    >
+                        {carsAround.map((item, index)=>
+                            <MapView.Marker coordinate={item} key={index.toString()}>
+                                <Image source={require('../../assets/carMarker.png')}
+                                       style={styles.carsAround}
+                                       resizeMode="cover"/>
+                            </MapView.Marker>
+                        )
+                        }
+                    </MapView>
+                </View>
 
             </ScrollView>
             <StatusBar style={"light"} backgroundColor={"#2058c0"} translucent={true}/>
